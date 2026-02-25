@@ -20,14 +20,14 @@ android {
         // Project Information
         def author = "Meetkumar Patel"
         def email = "pmeet464@gmail.com"
-        def website = "https://github.com/controlsphere/tv-remote"
+        def website = "https://github.com/meetpatel1111/ControlSphere"
         def description = "ControlSphere - Advanced Android TV Remote with Voice Control"
         def license = "MIT"
         
         // Build Configuration
         buildConfigField "String", "AUTHOR", "\"$author\""
         buildConfigField "String", "EMAIL", "\"$email\""
-        buildConfigField "String", "WEBSITE", "\"$website\""
+        buildConfigField "String", "WEBSITE", "\"https://github.com/meetpatel1111/ControlSphere\""
         buildConfigField "String", "VERSION_NAME", "\"0.1.0\""
         buildConfigField "int", "VERSION_CODE", "$versionCode"
         
