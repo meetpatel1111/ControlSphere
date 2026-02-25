@@ -1,5 +1,6 @@
 package com.controlsphere.tvremote.data.voice
 
+import com.controlsphere.tvremote.data.preferences.PreferencesManager
 import com.controlsphere.tvremote.data.repository.DeviceRepository
 import com.controlsphere.tvremote.domain.model.KeyEvent
 import kotlinx.coroutines.flow.Flow
@@ -129,7 +130,7 @@ class VoiceRepository @Inject constructor(
         }
     }
     
-    private suspend fun executeVoiceCommand(command: VoiceCommand?): Result<Unit> {
+    suspend fun executeVoiceCommand(command: VoiceCommand?): Result<Unit> {
         if (command == null || command.confidence < 0.5f) {
             return Result.failure(Exception("Low confidence command"))
         }

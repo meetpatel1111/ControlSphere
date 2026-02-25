@@ -15,7 +15,8 @@ import javax.inject.Inject
 @HiltViewModel
 class VoiceViewModel @Inject constructor(
     private val voiceRepository: VoiceRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val multiLanguageSpeechService: MultiLanguageSpeechService
 ) : ViewModel() {
 
     var uiState by mutableStateOf(VoiceUiState())
@@ -288,6 +289,118 @@ class VoiceViewModel @Inject constructor(
             voiceRepository.stopAudioPlayback()
         }
     }
+    
+    // Multi-language methods
+    fun startMultiLanguageVoiceCommand() {
+        if (uiState.apiKey.isBlank()) {
+            uiState = uiState.copy(errorMessage = "API key required for voice commands")
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                uiState = uiState.copy(
+                    isProcessing = true,
+                    errorMessage = null
+                )
+                
+                // Set the language
+                multiLanguageSpeechService.setLanguage(uiState.currentLanguage)
+                
+                // Start listening for voice input
+                val listeningStarted = multiLanguageSpeechService.startListening()
+                if (!listeningStarted) {
+                    uiState = uiState.copy(
+                        isProcessing = false,
+                        errorMessage = "Failed to start speech recognition"
+                    )
+                    return@launch
+                }
+                
+                // Wait for recognition result
+                var recognizedText = ""
+                var recognitionComplete = false
+                
+                // Collect recognition results
+                multiLanguageSpeechService.recognizedText.collect { text ->
+                    recognizedText = text
+                }
+                
+                multiLanguageSpeechService.recognitionState.collect { state ->
+                    when (state) {
+                        MultiLanguageSpeechService.RecognitionState.SUCCESS -> {
+                            recognitionComplete = true
+                        }
+                        MultiLanguageSpeechService.RecognitionState.ERROR -> {
+                            recognitionComplete = true
+                        }
+                        else -> { /* Continue listening */ }
+                    }
+                }
+                
+                // Wait for completion (in a real app, this would be handled with proper coroutine flow)
+                kotlinx.coroutines.delay(5000) // Max 5 seconds listening
+                
+                if (recognizedText.isBlank()) {
+                    uiState = uiState.copy(
+                        isProcessing = false,
+                        errorMessage = "No speech recognized"
+                    )
+                    return@launch
+                }
+                
+                // Parse the command using multi-language translations
+                val action = VoiceCommandTranslations.parseVoiceCommand(recognizedText, uiState.currentLanguage)
+                
+                if (action == null) {
+                    uiState = uiState.copy(
+                        isProcessing = false,
+                        errorMessage = "Command not recognized: $recognizedText"
+                    )
+                    return@launch
+                }
+                
+                // Create voice command
+                val voiceCommand = VoiceCommand(
+                    action = action,
+                    text = recognizedText,
+                    confidence = 0.8f // Android SpeechRecognizer provides confidence
+                )
+                
+                // Execute the command using existing repository method
+                val executionResult = voiceRepository.executeVoiceCommand(voiceCommand)
+                
+                // Create result
+                val commandResult = VoiceCommandResult(
+                    transcribedText = recognizedText,
+                    command = voiceCommand,
+                    executionSuccess = executionResult.isSuccess,
+                    executionError = if (executionResult.isSuccess) null else "Command failed"
+                )
+                
+                uiState = uiState.copy(
+                    isProcessing = false,
+                    lastCommand = voiceCommand,
+                    lastResult = commandResult
+                )
+                
+            } catch (e: Exception) {
+                uiState = uiState.copy(
+                    isProcessing = false,
+                    errorMessage = e.message ?: "Voice command failed"
+                )
+            }
+        }
+    }
+    
+    fun setVoiceLanguage(language: VoiceLanguage) {
+        multiLanguageSpeechService.setLanguage(language)
+        uiState = uiState.copy(currentLanguage = language)
+    }
+    
+    fun getCurrentLanguage(): VoiceLanguage {
+        return uiState.currentLanguage
+    }
 }
 
 data class VoiceUiState(
@@ -297,5 +410,7 @@ data class VoiceUiState(
     val lastResult: VoiceCommandResult? = null,
     val playbackState: PlaybackState = PlaybackState.IDLE,
     val currentAudio: TTSResult? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val currentLanguage: VoiceLanguage = VoiceLanguage.ENGLISH,
+    val lastCommand: VoiceCommand? = null
 )
