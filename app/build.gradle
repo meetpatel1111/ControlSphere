@@ -37,10 +37,28 @@ android {
         }
     }
 
-    buildTypes {
+    signingConfigs {
         release {
+            storeFile file('release.keystore')
+            storePassword 'controlsphere'
+            keyAlias 'controlsphere'
+            keyPassword 'controlsphere'
+        }
+    }
+    
+    buildTypes {
+        debug {
             minifyEnabled false
+            debuggable true
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+        release {
+            minifyEnabled true
+            debuggable false
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
