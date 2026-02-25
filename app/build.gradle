@@ -15,7 +15,7 @@ android {
         minSdk 26
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName "0.1.0"
         
         // Project Information
         def author = "Meetkumar Patel"
@@ -28,7 +28,7 @@ android {
         buildConfigField "String", "AUTHOR", "\"$author\""
         buildConfigField "String", "EMAIL", "\"$email\""
         buildConfigField "String", "WEBSITE", "\"$website\""
-        buildConfigField "String", "VERSION_NAME", "\"$versionName\""
+        buildConfigField "String", "VERSION_NAME", "\"0.1.0\""
         buildConfigField "int", "VERSION_CODE", "$versionCode"
         
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
