@@ -16,7 +16,21 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
-
+        
+        // Project Information
+        def author = "Meetkumar Patel"
+        def email = "pmeet464@gmail.com"
+        def website = "https://github.com/controlsphere/tv-remote"
+        def description = "ControlSphere - Advanced Android TV Remote with Voice Control"
+        def license = "MIT"
+        
+        // Build Configuration
+        buildConfigField "String", "AUTHOR", "\"$author\""
+        buildConfigField "String", "EMAIL", "\"$email\""
+        buildConfigField "String", "WEBSITE", "\"$website\""
+        buildConfigField "String", "VERSION_NAME", "\"$versionName\""
+        buildConfigField "int", "VERSION_CODE", "$versionCode"
+        
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
