@@ -220,3 +220,126 @@ sealed class TaskProgress {
     data class Completed(val outcome: String) : TaskProgress()
     data class Error(val message: String) : TaskProgress()
 }
+
+// Enhanced Computer Use Vision Types
+data class ErrorDetectionResult(
+    val hasErrors: Boolean,
+    val issues: List<ScreenIssue>,
+    val recommendedActions: List<String>,
+    val autoResolvable: Boolean
+)
+
+data class ScreenIssue(
+    val type: IssueType,
+    val description: String,
+    val resolution: List<ActionKeyEvent>,
+    val priority: IssuePriority,
+    val position: Position? = null
+)
+
+enum class IssueType {
+    ERROR, WARNING, LOADING, PERMISSION, NETWORK, CRASH, SYSTEM_ALERT
+}
+
+enum class IssuePriority {
+    HIGH, MEDIUM, LOW
+}
+
+data class VisualSearchResult(
+    val searchQuery: String,
+    val searchFieldFound: Boolean,
+    val searchFieldLocation: Position?,
+    val navigationToSearch: List<ActionKeyEvent>,
+    val contentMatches: List<String>,
+    val confidence: Float,
+    val alternativeSearchMethods: List<String>
+)
+
+data class GesturePlan(
+    val gestureDescription: String,
+    val gestureRecognized: Boolean,
+    val keySequence: List<ActionKeyEvent>,
+    val timingIntervals: List<Long>, // delays in ms
+    val expectedResult: String,
+    val confidence: Float
+)
+
+// Multi-Device Management Types
+data class DeviceProfile(
+    val id: String,
+    val name: String,
+    val ipAddress: String,
+    val port: Int = 5555,
+    val deviceType: DeviceType,
+    val model: String,
+    val manufacturer: String,
+    val osVersion: String,
+    val isOnline: Boolean = false,
+    val lastConnected: Long = 0L,
+    val favoriteApps: List<String> = emptyList(),
+    val customCommands: List<CustomVoiceCommand> = emptyList(),
+    val room: String? = null,
+    val nickname: String? = null
+)
+
+enum class DeviceType {
+    ANDROID_TV, GOOGLE_TV, CHROMECAST, NVIDIA_SHIELD, SONY_TV, TCL_TV, UNKNOWN
+}
+
+data class DeviceGroup(
+    val id: String,
+    val name: String,
+    val deviceIds: List<String>,
+    val room: String,
+    val allowSimultaneousControl: Boolean = false
+)
+
+// Custom Voice Commands Types
+data class CustomVoiceCommand(
+    val id: String,
+    val name: String,
+    val triggerPhrases: List<String>,
+    val actionSequence: List<CommandAction>,
+    val description: String,
+    val isEnabled: Boolean = true,
+    val deviceId: String? = null, // null means global command
+    val category: CommandCategory,
+    val createdTime: Long = System.currentTimeMillis(),
+    val usageCount: Int = 0
+)
+
+data class CommandAction(
+    val type: ActionType,
+    val parameters: Map<String, String> = emptyMap(),
+    val delay: Long = 0L // delay in ms before this action
+)
+
+enum class ActionType {
+    KEY_EVENT,
+    TEXT_INPUT,
+    APP_LAUNCH,
+    VOICE_COMMAND,
+    VISUAL_SEARCH,
+    COMPUTER_USE,
+    DELAY,
+    CONDITIONAL
+}
+
+enum class CommandCategory {
+    NAVIGATION, MEDIA, SEARCH, APP_CONTROL, AUTOMATION, SYSTEM, CUSTOM
+}
+
+data class CommandExecutionResult(
+    val commandId: String,
+    val success: Boolean,
+    val executedActions: List<ExecutedAction>,
+    val error: String? = null,
+    val executionTime: Long
+)
+
+data class ExecutedAction(
+    val action: CommandAction,
+    val success: Boolean,
+    val result: String? = null,
+    val error: String? = null
+)

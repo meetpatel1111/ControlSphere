@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.controlsphere.tvremote.data.voice.VoiceLanguage
 import com.controlsphere.tvremote.presentation.screens.apps.AppsScreen
+import com.controlsphere.tvremote.presentation.screens.devicemanagement.DeviceManagementScreen
 import com.controlsphere.tvremote.presentation.screens.devicepairing.DevicePairingScreen
 import com.controlsphere.tvremote.presentation.screens.remote.RemoteScreen
 import com.controlsphere.tvremote.presentation.screens.search.SearchScreen
@@ -14,6 +15,7 @@ import com.controlsphere.tvremote.presentation.screens.settings.SettingsScreen
 import com.controlsphere.tvremote.presentation.screens.splash.SplashScreen
 import com.controlsphere.tvremote.presentation.screens.textinput.TextInputScreen
 import com.controlsphere.tvremote.presentation.screens.voice.VoiceScreen
+import com.controlsphere.tvremote.presentation.screens.voice.CustomCommandsScreen
 
 @Composable
 fun ControlSphereNavigation(navController: NavHostController) {
@@ -52,6 +54,12 @@ fun ControlSphereNavigation(navController: NavHostController) {
                 onBack = { navController.popBackStack() }
             )
         }
+        composable(Screen.DeviceManagement.route) {
+            DeviceManagementScreen(navController = navController)
+        }
+        composable(Screen.CustomCommands.route) {
+            CustomCommandsScreen(navController = navController)
+        }
         composable("apps") {
             AppsScreen(navController = navController)
         }
@@ -74,4 +82,6 @@ sealed class Screen(val route: String) {
     object Voice : Screen("voice")
     object Settings : Screen("settings")
     object LanguageSelection : Screen("language_selection")
+    object DeviceManagement : Screen("device_management")
+    object CustomCommands : Screen("custom_commands")
 }

@@ -243,6 +243,183 @@ class GeminiComputerUseService @Inject constructor(
         }
     }
     
+    /**
+     * Enhanced error detection and recovery
+     */
+    suspend fun detectAndHandleErrors(
+        apiKey: String,
+        screenshot: Bitmap
+    ): Result<ErrorDetectionResult> = withContext(Dispatchers.IO) {
+        try {
+            val client = Client.builder()
+                .apiKey(apiKey)
+                .build()
+            
+            val tempFile = File(context.cacheDir, "temp_error_detection.png")
+            FileOutputStream(tempFile).use { 
+                screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            val uploadedFile = client.files.upload(tempFile.absolutePath, null)
+            
+            val prompt = """
+                Analyze this TV screen for errors, warnings, or system messages:
+                
+                Please identify:
+                1. Any error dialogs or messages
+                2. Warning notifications
+                3. Loading states that might be stuck
+                4. Network connectivity issues
+                5. App crashes or frozen states
+                6. Permission requests
+                7. System alerts
+                
+                For each issue found, provide:
+                - Type of issue (ERROR, WARNING, LOADING, PERMISSION, NETWORK, CRASH)
+                - Description of the issue
+                - Suggested resolution (key events to dismiss/navigate)
+                - Priority (HIGH, MEDIUM, LOW)
+                
+                Return ONLY a JSON object with:
+                - "has_errors": boolean
+                - "issues": array of issue objects
+                - "recommended_actions": array of strings
+                - "auto_resolvable": boolean
+            """.trimIndent()
+            
+            val content = Content.fromParts(
+                Part.fromText(prompt),
+                Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
+            )
+            
+            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val jsonResponse = cleanJsonResponse(response.text() ?: "")
+            
+            tempFile.delete()
+            
+            val errorResult = parseErrorDetectionResult(jsonResponse)
+            Result.success(errorResult)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Smart search functionality with visual understanding
+     */
+    suspend fun performVisualSearch(
+        apiKey: String,
+        screenshot: Bitmap,
+        searchQuery: String
+    ): Result<VisualSearchResult> = withContext(Dispatchers.IO) {
+        try {
+            val client = Client.builder()
+                .apiKey(apiKey)
+                .build()
+            
+            val tempFile = File(context.cacheDir, "temp_visual_search.png")
+            FileOutputStream(tempFile).use { 
+                screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            val uploadedFile = client.files.upload(tempFile.absolutePath, null)
+            
+            val prompt = """
+                Perform visual search on this TV screen for: "$searchQuery"
+                
+                Please analyze the screen and:
+                1. Locate search input fields
+                2. Identify search buttons or icons
+                3. Find relevant content matching the query
+                4. Determine the best navigation path to search
+                
+                Return ONLY a JSON object with:
+                - "search_field_found": boolean
+                - "search_field_location": {"x": int, "y": int} or null
+                - "navigation_to_search": array of key events
+                - "content_matches": array of matching content descriptions
+                - "confidence": 0-1
+                - "alternative_search_methods": array of strings
+            """.trimIndent()
+            
+            val content = Content.fromParts(
+                Part.fromText(prompt),
+                Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
+            )
+            
+            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val jsonResponse = cleanJsonResponse(response.text() ?: "")
+            
+            tempFile.delete()
+            
+            val searchResult = parseVisualSearchResult(jsonResponse, searchQuery)
+            Result.success(searchResult)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Gesture recognition and execution planning
+     */
+    suspend fun recognizeAndPlanGestures(
+        apiKey: String,
+        screenshot: Bitmap,
+        gestureDescription: String
+    ): Result<GesturePlan> = withContext(Dispatchers.IO) {
+        try {
+            val client = Client.builder()
+                .apiKey(apiKey)
+                .build()
+            
+            val tempFile = File(context.cacheDir, "temp_gesture_analysis.png")
+            FileOutputStream(tempFile).use { 
+                screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            val uploadedFile = client.files.upload(tempFile.absolutePath, null)
+            
+            val prompt = """
+                Analyze this TV screen and plan execution for gesture: "$gestureDescription"
+                
+                Common gestures on TV:
+                - Swipe up/down/left/right (navigation)
+                - Long press (context menu)
+                - Double tap (select/zoom)
+                - Pinch (zoom in/out - rare on TV)
+                - Scroll (continuous navigation)
+                
+                Convert the gesture to D-pad key sequences:
+                - Swipe up → UP key
+                - Swipe down → DOWN key
+                - Swipe left → LEFT key
+                - Swipe right → RIGHT key
+                - Long press → HOLD ENTER
+                - Double tap → ENTER, ENTER
+                - Scroll → repeated UP/DOWN
+                
+                Return ONLY a JSON object with:
+                - "gesture_recognized": boolean
+                - "key_sequence": array of key events
+                - "timing_intervals": array of delays in ms between keys
+                - "expected_result": string
+                - "confidence": 0-1
+            """.trimIndent()
+            
+            val content = Content.fromParts(
+                Part.fromText(prompt),
+                Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
+            )
+            
+            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val jsonResponse = cleanJsonResponse(response.text() ?: "")
+            
+            tempFile.delete()
+            
+            val gesturePlan = parseGesturePlan(jsonResponse, gestureDescription)
+            Result.success(gesturePlan)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     private fun cleanJsonResponse(response: String): String {
         return response.substringAfter("```json").substringAfter("{").substringBeforeLast("```").substringBeforeLast("}")
             .let { "{$it}" }
@@ -340,6 +517,63 @@ class GeminiComputerUseService @Inject constructor(
             fallbackStrategies = (data["fallback_strategies"] as? List<*>)?.map { it.toString() } ?: emptyList(),
             estimatedTime = (data["estimated_time"] as? Number)?.toLong() ?: 0L,
             successProbability = (data["success_probability"] as? Number)?.toFloat() ?: 0.5f
+        )
+    }
+    
+    private fun parseErrorDetectionResult(jsonResponse: String): ErrorDetectionResult {
+        val mapType = object : TypeToken<Map<String, Any>>() {}.type
+        val data: Map<String, Any> = gson.fromJson(jsonResponse, mapType)
+        
+        val issues = (data["issues"] as? List<Map<String, Any>>)?.map {
+            ScreenIssue(
+                type = IssueType.valueOf(it["type"] as String),
+                description = it["description"] as String,
+                resolution = (it["resolution"] as? List<*>)?.map { ActionKeyEvent.valueOf(it.toString()) } ?: emptyList(),
+                priority = IssuePriority.valueOf(it["priority"] as String),
+                position = (it["position"] as? Map<String, Any>)?.let { pos ->
+                    Position((pos["x"] as Number).toInt(), (pos["y"] as Number).toInt())
+                }
+            )
+        } ?: emptyList()
+        
+        return ErrorDetectionResult(
+            hasErrors = data["has_errors"] as? Boolean ?: false,
+            issues = issues,
+            recommendedActions = (data["recommended_actions"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+            autoResolvable = data["auto_resolvable"] as? Boolean ?: false
+        )
+    }
+    
+    private fun parseVisualSearchResult(jsonResponse: String, query: String): VisualSearchResult {
+        val mapType = object : TypeToken<Map<String, Any>>() {}.type
+        val data: Map<String, Any> = gson.fromJson(jsonResponse, mapType)
+        
+        val searchLocation = (data["search_field_location"] as? Map<String, Any>)?.let { pos ->
+            Position((pos["x"] as Number).toInt(), (pos["y"] as Number).toInt())
+        }
+        
+        return VisualSearchResult(
+            searchQuery = query,
+            searchFieldFound = data["search_field_found"] as? Boolean ?: false,
+            searchFieldLocation = searchLocation,
+            navigationToSearch = (data["navigation_to_search"] as? List<*>)?.map { ActionKeyEvent.valueOf(it.toString()) } ?: emptyList(),
+            contentMatches = (data["content_matches"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+            confidence = (data["confidence"] as? Number)?.toFloat() ?: 0.5f,
+            alternativeSearchMethods = (data["alternative_search_methods"] as? List<*>)?.map { it.toString() } ?: emptyList()
+        )
+    }
+    
+    private fun parseGesturePlan(jsonResponse: String, description: String): GesturePlan {
+        val mapType = object : TypeToken<Map<String, Any>>() {}.type
+        val data: Map<String, Any> = gson.fromJson(jsonResponse, mapType)
+        
+        return GesturePlan(
+            gestureDescription = description,
+            gestureRecognized = data["gesture_recognized"] as? Boolean ?: false,
+            keySequence = (data["key_sequence"] as? List<*>)?.map { ActionKeyEvent.valueOf(it.toString()) } ?: emptyList(),
+            timingIntervals = (data["timing_intervals"] as? List<*>)?.map { (it as Number).toLong() } ?: emptyList(),
+            expectedResult = data["expected_result"] as? String ?: "",
+            confidence = (data["confidence"] as? Number)?.toFloat() ?: 0.5f
         )
     }
 }

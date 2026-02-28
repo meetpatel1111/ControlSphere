@@ -1,6 +1,10 @@
 package com.controlsphere.tvremote.presentation.screens.remote
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,10 +85,12 @@ fun RemoteScreen(
             ) {
                 ActionButtons(
                     onAppsClick = { navController.navigate("apps") },
-                    onSettingsClick = { /* Navigate to settings */ },
+                    onSettingsClick = { navController.navigate(Screen.DeviceManagement.route) },
                     onPowerClick = { viewModel.sendKeyEvent(com.controlsphere.tvremote.domain.model.KeyEvent.POWER) },
                     onHomeClick = { viewModel.sendKeyEvent(com.controlsphere.tvremote.domain.model.KeyEvent.HOME) },
-                    onBackClick = { viewModel.sendKeyEvent(com.controlsphere.tvremote.domain.model.KeyEvent.BACK) }
+                    onBackClick = { viewModel.sendKeyEvent(com.controlsphere.tvremote.domain.model.KeyEvent.BACK) },
+                    onDeviceManagementClick = { navController.navigate(Screen.DeviceManagement.route) },
+                    onCustomCommandsClick = { navController.navigate(Screen.CustomCommands.route) }
                 )
             }
         }

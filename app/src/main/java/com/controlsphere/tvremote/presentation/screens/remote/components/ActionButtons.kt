@@ -16,7 +16,9 @@ fun ActionButtons(
     onSettingsClick: () -> Unit,
     onPowerClick: () -> Unit,
     onHomeClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onDeviceManagementClick: () -> Unit = {},
+    onCustomCommandsClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -46,11 +48,18 @@ fun ActionButtons(
             contentDescription = "Apps"
         )
 
-        // Settings button
+        // Settings button (now Device Management)
         ActionButton(
-            onClick = onSettingsClick,
-            icon = Icons.Default.Settings,
-            contentDescription = "Settings"
+            onClick = onDeviceManagementClick,
+            icon = Icons.Default.DevicesOther,
+            contentDescription = "Device Management"
+        )
+
+        // Custom Commands button
+        ActionButton(
+            onClick = onCustomCommandsClick,
+            icon = Icons.Default.RecordVoiceOver,
+            contentDescription = "Custom Commands"
         )
 
         // Power button (highlighted)
