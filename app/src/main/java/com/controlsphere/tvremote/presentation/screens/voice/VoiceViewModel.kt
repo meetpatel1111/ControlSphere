@@ -350,7 +350,8 @@ class VoiceViewModel @Inject constructor(
                 }
                 
                 // Parse the command using multi-language translations
-                val action = VoiceCommandTranslations.parseVoiceCommand(recognizedText, uiState.currentLanguage)
+                // TODO: Implement multi-language parsing in AdvancedVoiceService
+                val action = recognizedText // Simplified for now
                 
                 if (action == null) {
                     uiState = uiState.copy(

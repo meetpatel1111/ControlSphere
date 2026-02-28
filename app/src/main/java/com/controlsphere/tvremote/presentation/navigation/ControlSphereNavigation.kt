@@ -16,6 +16,7 @@ import com.controlsphere.tvremote.presentation.screens.splash.SplashScreen
 import com.controlsphere.tvremote.presentation.screens.textinput.TextInputScreen
 import com.controlsphere.tvremote.presentation.screens.voice.VoiceScreen
 import com.controlsphere.tvremote.presentation.screens.voice.CustomCommandsScreen
+import com.controlsphere.tvremote.presentation.screens.voice.AdvancedVoiceScreen
 
 @Composable
 fun ControlSphereNavigation(navController: NavHostController) {
@@ -59,6 +60,9 @@ fun ControlSphereNavigation(navController: NavHostController) {
         }
         composable(Screen.CustomCommands.route) {
             CustomCommandsScreen(navController = navController)
+        }
+        composable("advanced_voice") {
+            AdvancedVoiceScreen(navController = navController)
         }
         composable("apps") {
             AppsScreen(navController = navController)

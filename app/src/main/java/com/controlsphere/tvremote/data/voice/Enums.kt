@@ -329,6 +329,129 @@ enum class CommandCategory {
     NAVIGATION, MEDIA, SEARCH, APP_CONTROL, AUTOMATION, SYSTEM, CUSTOM
 }
 
+// Advanced Voice Features
+data class VoiceProfile(
+    val id: String,
+    val name: String,
+    val userId: String,
+    val voiceSamples: List<VoiceSample>,
+    val preferredLanguage: VoiceLanguage,
+    val personalizedResponses: Boolean = true,
+    val wakeWordSensitivity: Float = 0.7f,
+    val accent: String? = null,
+    val pitch: Float = 1.0f,
+    val speed: Float = 1.0f,
+    val createdTime: Long = System.currentTimeMillis(),
+    val lastUsed: Long = System.currentTimeMillis()
+)
+
+data class VoiceSample(
+    val id: String,
+    val profileId: String,
+    val audioData: ByteArray,
+    val sampleType: VoiceSampleType,
+    val confidence: Float,
+    val timestamp: Long = System.currentTimeMillis()
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as VoiceSample
+        return id == other.id && profileId == other.profileId
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
+
+enum class VoiceSampleType {
+    WAKE_WORD,
+    COMMAND_PHRASE,
+    NATURAL_SPEECH,
+    ENROLLMENT_SAMPLE
+}
+
+data class AmbientModeConfig(
+    val isEnabled: Boolean = false,
+    val wakeWord: String = "Hey ControlSphere",
+    val sensitivity: Float = 0.7f,
+    val responseDelay: Long = 500L,
+    val continuousListening: Boolean = false,
+    val batteryOptimization: Boolean = true,
+    val nightMode: NightModeConfig = NightModeConfig(),
+    val privacyMode: Boolean = true
+)
+
+data class NightModeConfig(
+    val isEnabled: Boolean = false,
+    val startTime: String = "22:00",
+    val endTime: String = "07:00",
+    val reducedSensitivity: Float = 0.5f,
+    val silentResponses: Boolean = true
+)
+
+data class MultiLanguageCommand(
+    val id: String,
+    val basePhrase: String,
+    val translations: Map<VoiceLanguage, String>,
+    val detectedLanguage: VoiceLanguage,
+    val confidence: Float,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class LanguageSwitchContext(
+    val previousLanguage: VoiceLanguage,
+    val newLanguage: VoiceLanguage,
+    val triggerPhrase: String,
+    val confidence: Float,
+    val context: String
+)
+
+enum class WakeWordState {
+    INACTIVE,
+    LISTENING,
+    PROCESSING,
+    RESPONDING,
+    ERROR
+}
+
+data class VoiceRecognitionResult(
+    val text: String,
+    val confidence: Float,
+    val language: VoiceLanguage,
+    val profileId: String?,
+    val alternatives: List<String> = emptyList(),
+    val processingTime: Long,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class PersonalizedResponse(
+    val template: String,
+    val variables: Map<String, String> = emptyMap(),
+    val profileId: String,
+    val responseType: ResponseType
+)
+
+enum class ResponseType {
+    CONFIRMATION,
+    ACKNOWLEDGMENT,
+    ERROR,
+    INFO,
+    CASUAL,
+    PROFESSIONAL
+}
+
+data class VoiceCommandContext(
+    val command: String,
+    val language: VoiceLanguage,
+    val profileId: String?,
+    val deviceContext: DeviceProfile?,
+    val previousCommands: List<String> = emptyList(),
+    val sessionDuration: Long,
+    val confidence: Float
+)
+
 data class CommandExecutionResult(
     val commandId: String,
     val success: Boolean,

@@ -36,14 +36,12 @@ fun VoiceScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Voice Control") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 actions = {
                     IconButton(onClick = { showApiKeyDialog = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                    IconButton(onClick = { navController.navigate("advanced_voice") }) {
+                        Icon(Icons.Default.Mic, contentDescription = "Advanced Voice")
                     }
                 }
             )
