@@ -22,6 +22,7 @@ import com.controlsphere.tvremote.presentation.screens.voice.components.*
 import com.controlsphere.tvremote.presentation.navigation.Screen
 import com.controlsphere.tvremote.data.voice.RecordingState
 import com.controlsphere.tvremote.data.voice.VoiceConfig
+import androidx.compose.material.icons.filled.SmartToy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +41,8 @@ fun VoiceScreen(
                     IconButton(onClick = { showApiKeyDialog = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
-                    IconButton(onClick = { navController.navigate("advanced_voice") }) {
-                        Icon(Icons.Default.Mic, contentDescription = "Advanced Voice")
+                    IconButton(onClick = { navController.navigate(Screen.ContextAwareVoice.route) }) {
+                        Icon(Icons.Default.SmartToy, contentDescription = "AI Voice Control")
                     }
                 }
             )

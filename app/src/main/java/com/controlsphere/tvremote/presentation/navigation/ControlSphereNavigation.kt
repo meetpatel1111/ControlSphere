@@ -5,18 +5,19 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.controlsphere.tvremote.data.voice.VoiceLanguage
-import com.controlsphere.tvremote.presentation.screens.apps.AppsScreen
-import com.controlsphere.tvremote.presentation.screens.devicemanagement.DeviceManagementScreen
+import com.controlsphere.tvremote.presentation.screens.splash.SplashScreen
 import com.controlsphere.tvremote.presentation.screens.devicepairing.DevicePairingScreen
 import com.controlsphere.tvremote.presentation.screens.remote.RemoteScreen
-import com.controlsphere.tvremote.presentation.screens.search.SearchScreen
-import com.controlsphere.tvremote.presentation.screens.settings.LanguageSelectionScreen
-import com.controlsphere.tvremote.presentation.screens.settings.SettingsScreen
-import com.controlsphere.tvremote.presentation.screens.splash.SplashScreen
-import com.controlsphere.tvremote.presentation.screens.textinput.TextInputScreen
 import com.controlsphere.tvremote.presentation.screens.voice.VoiceScreen
+import com.controlsphere.tvremote.presentation.screens.voice.ContextAwareVoiceScreen
+import com.controlsphere.tvremote.presentation.screens.settings.SettingsScreen
+import com.controlsphere.tvremote.presentation.screens.settings.LanguageSelectionScreen
+import com.controlsphere.tvremote.presentation.screens.devicemanagement.DeviceManagementScreen
 import com.controlsphere.tvremote.presentation.screens.voice.CustomCommandsScreen
+import com.controlsphere.tvremote.presentation.screens.textinput.TextInputScreen
 import com.controlsphere.tvremote.presentation.screens.voice.AdvancedVoiceScreen
+import com.controlsphere.tvremote.presentation.screens.apps.AppsScreen
+import com.controlsphere.tvremote.presentation.screens.search.SearchScreen
 
 @Composable
 fun ControlSphereNavigation(navController: NavHostController) {
@@ -35,6 +36,10 @@ fun ControlSphereNavigation(navController: NavHostController) {
         }
         composable(Screen.Voice.route) {
             VoiceScreen(navController = navController)
+        }
+        
+        composable(Screen.ContextAwareVoice.route) {
+            ContextAwareVoiceScreen(navController = navController)
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
@@ -84,6 +89,7 @@ sealed class Screen(val route: String) {
     object DevicePairing : Screen("device_pairing")
     object Remote : Screen("remote")
     object Voice : Screen("voice")
+    object ContextAwareVoice : Screen("context_aware_voice")
     object Settings : Screen("settings")
     object LanguageSelection : Screen("language_selection")
     object DeviceManagement : Screen("device_management")
