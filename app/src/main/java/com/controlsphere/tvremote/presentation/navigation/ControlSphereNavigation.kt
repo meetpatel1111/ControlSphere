@@ -18,12 +18,31 @@ import com.controlsphere.tvremote.presentation.screens.textinput.TextInputScreen
 import com.controlsphere.tvremote.presentation.screens.voice.AdvancedVoiceScreen
 import com.controlsphere.tvremote.presentation.screens.apps.AppsScreen
 import com.controlsphere.tvremote.presentation.screens.search.SearchScreen
+import com.controlsphere.tvremote.presentation.tvreceiver.TVReceiverScreen
+import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
 
 @Composable
-fun ControlSphereNavigation(navController: NavHostController) {
+fun ControlSphereNavigation(navController: NavHostController, context: Context? = null) {
+    // Determine if this is a TV device
+    val isTVDevice = context?.let { ctx ->
+        ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+        ctx.packageManager.hasSystemFeature("android.hardware.type.television")
+    } ?: false
+    
+    Log.d("ControlSphere", "Is TV Device: $isTVDevice")
+    
+    // Set different start destinations for TV vs Phone
+    val startDestination = if (isTVDevice) {
+        Screen.TVReceiver.route
+    } else {
+        Screen.Splash.route
+    }
+    
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route
+        startDestination = startDestination
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(navController = navController)
@@ -81,6 +100,9 @@ fun ControlSphereNavigation(navController: NavHostController) {
         composable("voice") {
             VoiceScreen(navController = navController)
         }
+        composable("tv_receiver") {
+            TVReceiverScreen(navController = navController)
+        }
     }
 }
 
@@ -94,4 +116,5 @@ sealed class Screen(val route: String) {
     object LanguageSelection : Screen("language_selection")
     object DeviceManagement : Screen("device_management")
     object CustomCommands : Screen("custom_commands")
+    object TVReceiver : Screen("tv_receiver")
 }

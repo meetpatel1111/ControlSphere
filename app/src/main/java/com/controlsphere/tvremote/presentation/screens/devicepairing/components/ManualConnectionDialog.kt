@@ -21,7 +21,7 @@ fun ManualConnectionDialog(
     onTestMode: () -> Unit = {}
 ) {
     var ipAddress by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("5555") }
+    var port by remember { mutableStateOf("5556") }
     var ipAddressError by remember { mutableStateOf<String?>(null) }
 
     fun validateAndConnect() {

@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    ControlSphereNavigation(navController = navController)
+                    ControlSphereNavigation(navController = navController, context = this@MainActivity)
                 }
             }
         }

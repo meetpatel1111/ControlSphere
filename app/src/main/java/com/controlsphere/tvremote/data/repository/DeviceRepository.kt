@@ -1,17 +1,24 @@
 package com.controlsphere.tvremote.data.repository
 
 import com.controlsphere.tvremote.data.adb.AdbConnection
+import com.controlsphere.tvremote.data.adb.ConnectionStatus
+import com.controlsphere.tvremote.data.connection.WiFiConnectionManager
 import com.controlsphere.tvremote.data.voice.DeviceProfile
 import com.controlsphere.tvremote.data.voice.DeviceGroup
 import com.controlsphere.tvremote.data.voice.DeviceType
 import com.controlsphere.tvremote.domain.model.AppInfo
 import com.controlsphere.tvremote.domain.model.Device
 import com.controlsphere.tvremote.domain.model.KeyEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -22,8 +29,39 @@ import javax.inject.Singleton
 
 @Singleton
 class DeviceRepository @Inject constructor(
-    private val adbConnection: AdbConnection
+    private val adbConnection: AdbConnection,
+    private val wifiConnectionManager: WiFiConnectionManager
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    
+    // Unified connection status that combines both ADB and WiFi
+    private val _unifiedConnectionStatus: StateFlow<ConnectionStatus> = 
+        combine(
+            adbConnection.getConnectionStatus(),
+            wifiConnectionManager.connectionStatus
+        ) { adbStatus, wifiStatus ->
+            // If either connection is active, report as connected
+            when {
+                wifiStatus.isConnected -> ConnectionStatus(
+                    isConnected = true,
+                    isAuthorized = true,
+                    errorMessage = null
+                )
+                adbStatus.isConnected -> adbStatus
+                else -> ConnectionStatus(
+                    isConnected = false,
+                    isAuthorized = false,
+                    errorMessage = adbStatus.errorMessage ?: wifiStatus.errorMessage
+                )
+            }
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = ConnectionStatus(
+                isConnected = false,
+                isAuthorized = false
+            )
+        )
     
     private val _currentDevice = MutableStateFlow<DeviceProfile?>(null)
     val currentDevice: StateFlow<DeviceProfile?> = _currentDevice.asStateFlow()
@@ -54,11 +92,21 @@ class DeviceRepository @Inject constructor(
     }
     
     // Legacy single device methods (for backward compatibility)
-    suspend fun connectToDevice(ipAddress: String, port: Int = 5555): Result<Boolean> {
-        return adbConnection.connect(ipAddress, port)
+    suspend fun connectToDevice(ipAddress: String, port: Int = 5556): Result<Boolean> {
+        // Try WiFi connection first on port 5556 (for ControlSphere TV Receiver)
+        val wifiPort = 5556
+        val wifiResult = wifiConnectionManager.connect(ipAddress, wifiPort)
+        if (wifiResult.isSuccess) {
+            return wifiResult
+        }
+        
+        // Fallback to ADB connection on the provided port (typically 5555)
+        val adbPort = if (port == wifiPort) 5555 else port
+        return adbConnection.connect(ipAddress, adbPort)
     }
     
     suspend fun disconnectFromDevice() {
+        wifiConnectionManager.disconnect()
         adbConnection.disconnect()
         _currentDevice.value = null
     }
@@ -413,18 +461,34 @@ class DeviceRepository @Inject constructor(
     
     // Current device operations
     suspend fun sendKeyEvent(keyEvent: KeyEvent): Result<Unit> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            return wifiConnectionManager.sendKeyEvent(keyEvent.code)
+        }
         return adbConnection.sendKeyEvent(keyEvent.code)
     }
     
     suspend fun sendText(text: String): Result<Unit> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            return wifiConnectionManager.sendText(text)
+        }
         return adbConnection.sendText(text)
     }
     
     suspend fun launchApp(packageName: String): Result<Unit> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            return wifiConnectionManager.launchApp(packageName)
+        }
         return adbConnection.launchApp(packageName)
     }
     
     suspend fun forceStopApp(packageName: String): Result<Unit> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            return wifiConnectionManager.forceStopApp(packageName)
+        }
         return adbConnection.forceStopApp(packageName)
     }
     
@@ -432,16 +496,14 @@ class DeviceRepository @Inject constructor(
         return adbConnection.getInstalledApps()
     }
     
-    fun getConnectionStatus(): StateFlow<com.controlsphere.tvremote.data.adb.ConnectionStatus> {
-        return adbConnection.getConnectionStatus() as StateFlow<com.controlsphere.tvremote.data.adb.ConnectionStatus>
-    }
+    fun getConnectionStatus(): StateFlow<ConnectionStatus> = _unifiedConnectionStatus
     
     suspend fun isConnected(): Boolean {
-        return adbConnection.isConnected()
+        return wifiConnectionManager.isConnected() || adbConnection.isConnected()
     }
     
     suspend fun isAuthorized(): Boolean {
-        return adbConnection.isAuthorized()
+        return wifiConnectionManager.isAuthorized() || adbConnection.isAuthorized()
     }
     
     suspend fun captureScreen(): Result<ByteArray> {

@@ -16,11 +16,14 @@ import androidx.navigation.NavController
 import com.controlsphere.tvremote.R
 import com.controlsphere.tvremote.presentation.navigation.Screen
 import kotlinx.coroutines.delay
+import android.util.Log
 
 @Composable
 fun SplashScreen(navController: NavController) {
     LaunchedEffect(Unit) {
+        Log.d("SplashScreen", "Splash screen started, will navigate in 2 seconds")
         delay(2000) // Show splash for 2 seconds
+        Log.d("SplashScreen", "Navigating to DevicePairing")
         navController.navigate(Screen.DevicePairing.route) {
             popUpTo(Screen.Splash.route) { inclusive = true }
         }

@@ -63,7 +63,7 @@ class DevicePairingViewModel @Inject constructor(
         uiState = uiState.copy(isScanning = false)
     }
 
-    fun connectToDevice(ipAddress: String, port: Int = 5555) {
+    fun connectToDevice(ipAddress: String, port: Int = 5556) {
         uiState = uiState.copy(
             connectingToDevice = ipAddress,
             errorMessage = null

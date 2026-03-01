@@ -17,8 +17,8 @@ android {
         applicationId "com.controlsphere.tvremote"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "0.1.0"
+        versionCode 2
+        versionName "0.2.0"
         
         // Project Information
         def author = "Meetkumar Patel"
@@ -31,7 +31,7 @@ android {
         buildConfigField "String", "AUTHOR", "\"$author\""
         buildConfigField "String", "EMAIL", "\"$email\""
         buildConfigField "String", "WEBSITE", "\"https://github.com/meetpatel1111/ControlSphere\""
-        buildConfigField "String", "VERSION_NAME", "\"0.1.0\""
+        buildConfigField "String", "VERSION_NAME", "\"0.2.0\""
         buildConfigField "int", "VERSION_CODE", "$versionCode"
         
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -44,6 +44,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Set APK name
+            android.applicationVariants.all { variant ->
+                variant.outputs.all {
+                    outputFileName = "ControlSphere.apk"
+                }
+            }
         }
     }
     compileOptions {
