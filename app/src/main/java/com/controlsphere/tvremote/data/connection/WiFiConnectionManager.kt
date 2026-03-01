@@ -229,6 +229,62 @@ class WiFiConnectionManager @Inject constructor() {
         }
     }
     
+    suspend fun getInstalledApps(): Result<List<String>> = withContext(Dispatchers.IO) {
+        try {
+            val result = sendCommand("LIST_APPS")
+            result.map { response ->
+                if (response.startsWith("APPS:")) {
+                    val appsString = response.substringAfter("APPS:")
+                    if (appsString.isBlank()) emptyList()
+                    else appsString.split(",").filter { it.isNotBlank() }
+                } else {
+                    emptyList()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Failed to get installed apps: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun captureScreen(): Result<ByteArray> = withContext(Dispatchers.IO) {
+        try {
+            // Increase timeout for screen capture (takes longer)
+            socket?.soTimeout = 30000
+            val result = sendCommand("CAPTURE_SCREEN")
+            // Reset timeout
+            socket?.soTimeout = 10000
+            result.map { response ->
+                if (response.startsWith("SCREEN:")) {
+                    val base64Data = response.substringAfter("SCREEN:")
+                    android.util.Base64.decode(base64Data, android.util.Base64.NO_WRAP)
+                } else {
+                    ByteArray(0)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Failed to capture screen: ${e.message}", e)
+            socket?.soTimeout = 10000
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun sendShellCommand(command: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val result = sendCommand("SEND_COMMAND:$command")
+            result.map { response ->
+                if (response.startsWith("RESULT:")) {
+                    response.substringAfter("RESULT:").replace("\\n", "\n")
+                } else {
+                    response
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Failed to execute shell command: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
     private fun getConnectedDeviceName(response: String): String {
         return try {
             // Extract the actual device name from TV response

@@ -71,7 +71,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -127,7 +127,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -180,7 +180,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -231,7 +231,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -291,7 +291,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -345,7 +345,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -408,7 +408,7 @@ class GeminiComputerUseService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-computer-use-preview-10-2025", content, null)
+            val response = client.models.generateContent(VoiceConfig.COMPUTER_USE_MODEL, content, null)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()

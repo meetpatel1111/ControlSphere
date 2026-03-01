@@ -268,6 +268,9 @@ private fun getCommandIcon(type: CommandType): String {
         CommandType.APP_LAUNCH -> "🚀"
         CommandType.APP_STOP -> "🛑"
         CommandType.VOICE_COMMAND -> "🎤"
+        CommandType.LIST_APPS -> "📱"
+        CommandType.CAPTURE_SCREEN -> "📸"
+        CommandType.SHELL_COMMAND -> "💻"
         CommandType.UNKNOWN -> "❓"
     }
 }

@@ -1,5 +1,6 @@
 package com.controlsphere.tvremote.data.connection
 
+import android.util.Base64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,6 +81,9 @@ class TVReceiverManager @Inject constructor(
         APP_LAUNCH,
         APP_STOP,
         VOICE_COMMAND,
+        LIST_APPS,
+        CAPTURE_SCREEN,
+        SHELL_COMMAND,
         UNKNOWN
     }
     
@@ -244,6 +248,25 @@ class TVReceiverManager @Inject constructor(
                         addCommand("PING from $clientAddress - responded OK", CommandType.UNKNOWN)
                         Log.d("TVReceiver", "Responded to PING from $clientAddress")
                     }
+                    line == "LIST_APPS" -> {
+                        val apps = getInstalledApps()
+                        writer?.println("APPS:$apps")
+                        addCommand(line, CommandType.LIST_APPS)
+                        Log.d("TVReceiver", "Sent apps list (${apps.split(",").size} apps)")
+                    }
+                    line == "CAPTURE_SCREEN" -> {
+                        val screenData = captureScreenBase64()
+                        writer?.println("SCREEN:$screenData")
+                        addCommand(line, CommandType.CAPTURE_SCREEN)
+                        Log.d("TVReceiver", "Sent screen capture")
+                    }
+                    line.startsWith("SEND_COMMAND:") -> {
+                        val cmd = line.substringAfter("SEND_COMMAND:")
+                        val output = executeShellCommand(cmd)
+                        writer?.println("RESULT:$output")
+                        addCommand(line, CommandType.SHELL_COMMAND)
+                        Log.d("TVReceiver", "Executed shell command: $cmd")
+                    }
                     else -> {
                         processCommand(line)
                         addCommand(line, getCommandType(line))
@@ -354,6 +377,51 @@ class TVReceiverManager @Inject constructor(
         }
     }
     
+    private fun getInstalledApps(): String {
+        return try {
+            val process = Runtime.getRuntime().exec("pm list packages -3")
+            val reader = process.inputStream.bufferedReader()
+            val packages = reader.readLines()
+                .filter { it.startsWith("package:") }
+                .map { it.substringAfter("package:") }
+                .joinToString(",")
+            process.waitFor()
+            Log.d("TVReceiver", "Found apps: $packages")
+            packages
+        } catch (e: Exception) {
+            Log.e("TVReceiver", "Failed to get installed apps: ${e.message}", e)
+            ""
+        }
+    }
+    
+    private fun captureScreenBase64(): String {
+        return try {
+            val process = Runtime.getRuntime().exec("screencap -p")
+            val bytes = process.inputStream.readBytes()
+            process.waitFor()
+            val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            Log.d("TVReceiver", "Screen captured: ${bytes.size} bytes")
+            base64
+        } catch (e: Exception) {
+            Log.e("TVReceiver", "Failed to capture screen: ${e.message}", e)
+            ""
+        }
+    }
+    
+    private fun executeShellCommand(command: String): String {
+        return try {
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            val output = process.inputStream.bufferedReader().readText().trim()
+            process.waitFor()
+            Log.d("TVReceiver", "Shell command output: $output")
+            // Replace newlines with a safe delimiter for single-line protocol
+            output.replace("\n", "\\n")
+        } catch (e: Exception) {
+            Log.e("TVReceiver", "Failed to execute shell command: ${e.message}", e)
+            "ERROR:${e.message}"
+        }
+    }
+    
     private fun getCommandType(command: String): CommandType {
         return when {
             command.startsWith("input keyevent") -> CommandType.KEY_EVENT
@@ -361,6 +429,9 @@ class TVReceiverManager @Inject constructor(
             command.startsWith("monkey") -> CommandType.APP_LAUNCH
             command.startsWith("am force-stop") -> CommandType.APP_STOP
             command.startsWith("VOICE:") -> CommandType.VOICE_COMMAND
+            command == "LIST_APPS" -> CommandType.LIST_APPS
+            command == "CAPTURE_SCREEN" -> CommandType.CAPTURE_SCREEN
+            command.startsWith("SEND_COMMAND:") -> CommandType.SHELL_COMMAND
             else -> CommandType.UNKNOWN
         }
     }

@@ -65,11 +65,12 @@ A powerful Android TV remote controller that provides full UI-level control over
 - **Hilt**: Dependency injection
 - **Coroutines**: Asynchronous programming
 - **Material Design 3**: Modern design system
-- **Google GenAI SDK 1.0.0**: Official Gemini API library (GA)
+- **Google GenAI SDK 1.41.0**: Latest official Gemini API library with Live API support
 - **Gemini 2.5 AI**: Latest voice processing and natural language understanding
 - **Multi-Model Architecture**: Gemini 2.5 Flash, Pro, Live Preview, and Computer Use models
 - **Computer Use Vision**: Visual UI automation and screen understanding
 - **MediaProjection API**: Screen capture for visual analysis
+- **Real-time Audio Streaming**: Live PCM audio processing with WebSocket connections
 
 ## Setup Requirements
 
@@ -257,20 +258,35 @@ app/
 
 ### Google GenAI SDK Migration Status
 
-### ✅ **Migration Completed Successfully**
+### ✅ **Latest SDK Integration Complete**
 
-ControlSphere has been fully migrated to the **official Google GenAI SDK 1.0.0**, ensuring production-ready access to all Gemini API capabilities.
+ControlSphere has been upgraded to **Google GenAI SDK 1.41.0**, featuring the official Gemini Live API for real-time bidirectional streaming and enhanced AI capabilities.
 
 ### Migration Summary
 
-| Component | Old Library | New Library | Status |
+| Component | Previous Version | Current Version | Status |
 |---|---|---|---|
-| **Core Gemini Services** | `com.google.ai.client.generativeai:generativeai:0.1.2` | `com.google.genai:google-genai:1.0.0` | ✅ Migrated |
-| **Voice Recognition** | Legacy SDK | Official SDK | ✅ Working |
-| **Live API** | Not Supported | ✅ Available |
-| **Computer Use** | Not Supported | ✅ Available |
-| **TTS** | Not Supported | ✅ Available |
-| **All Models** | Limited | ✅ Full Access |
+| **Core Gemini Services** | `google-genai:1.0.0` | `google-genai:1.41.0` | ✅ Upgraded |
+| **Live API Support** | Not Available | ✅ Native Audio Live API | ✅ Implemented |
+| **Real-time Streaming** | File-based | ✅ WebSocket streaming | ✅ Active |
+| **Computer Use** | Basic | ✅ Enhanced with screen capture | ✅ Optimized |
+| **TTS** | Standard | ✅ High-fidelity 2.5 Flash TTS | ✅ Enhanced |
+| **Audio Processing** | Batch processing | ✅ Real-time PCM streaming | ✅ Live |
+
+### New Live API Capabilities
+
+#### **Real-time Bidirectional Communication**
+- **Native Audio Streaming**: Continuous 16kHz PCM audio streaming
+- **WebSocket Connection**: Direct Live API WebSocket integration
+- **Sub-second Latency**: Natural conversation with immediate responses
+- **Visual Context**: Real-time screen capture at 1 FPS for AI vision
+- **Session Management**: Persistent live sessions with context awareness
+
+#### **Enhanced Voice Features**
+- **Live Conversation**: Natural dialogue without recording delays
+- **Screen Understanding**: AI sees what you see on TV
+- **Contextual Commands**: Commands based on current TV content
+- **Multi-modal Processing**: Audio + visual input simultaneously
 
 ### Benefits Achieved
 
@@ -345,8 +361,9 @@ All Gemini-powered features verified working:
 - Local WiFi network
 - Developer mode enabled on TV
 - **Gemini API key (optional, for voice control)**
-- **Google GenAI SDK 1.0.0** (Official Gemini API library)
+- **Google GenAI SDK 1.41.0** (Latest official Gemini API library)
 - **MediaProjection permission** (for computer use features)
+- **Microphone permission** (for voice input and Live API)
 
 ## Security & Privacy
 

@@ -493,9 +493,13 @@ class DeviceRepository @Inject constructor(
     }
     
     suspend fun getInstalledApps(): Result<List<String>> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            val wifiResult = wifiConnectionManager.getInstalledApps()
+            if (wifiResult.isSuccess) return wifiResult
+        }
         return adbConnection.getInstalledApps()
     }
-    
     fun getConnectionStatus(): StateFlow<ConnectionStatus> = _unifiedConnectionStatus
     
     suspend fun isConnected(): Boolean {
@@ -507,6 +511,11 @@ class DeviceRepository @Inject constructor(
     }
     
     suspend fun captureScreen(): Result<ByteArray> {
+        // Try WiFi first, fallback to ADB
+        if (wifiConnectionManager.isConnected()) {
+            val wifiResult = wifiConnectionManager.captureScreen()
+            if (wifiResult.isSuccess) return wifiResult
+        }
         return adbConnection.captureScreen()
     }
     

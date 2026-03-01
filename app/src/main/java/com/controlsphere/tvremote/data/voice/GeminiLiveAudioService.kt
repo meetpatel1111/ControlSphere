@@ -1,76 +1,175 @@
 package com.controlsphere.tvremote.data.voice
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.media.AudioFormat
+import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.util.Log
+import com.controlsphere.tvremote.data.repository.DeviceRepository
 import com.google.genai.Client
-import com.google.genai.types.Blob
-import com.google.genai.types.Content
-import com.google.genai.types.Part
+import com.google.genai.types.*
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Gemini Live API implementation using Gemini 2.5 Flash Native Audio for real-time voice interaction
+ * Gemini Live API implementation using Gemini 2.5 Flash Native Audio for real-time bidirectional voice interaction
  */
 @Singleton
 class GeminiLiveAudioService @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val deviceRepository: DeviceRepository
 ) {
-    
-    private var mediaRecorder: MediaRecorder? = null
-    private var audioFile: File? = null
+    companion object {
+        private const val TAG = "LiveAudioService"
+        private const val SAMPLE_RATE = 16000
+        private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
+        private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+    }
     
     /**
      * Real-time audio streaming using Gemini 2.5 Flash Native Audio Live API
      */
-    suspend fun startLiveAudioSession(apiKey: String): Flow<LiveAudioResult> = flow {
+    @SuppressLint("MissingPermission")
+    suspend fun startLiveAudioSession(apiKey: String): Flow<LiveAudioResult> = callbackFlow {
+        trySend(LiveAudioResult.Status("Initializing Live API session..."))
+        
+        var audioRecord: AudioRecord? = null
+        var isSessionActive = true
+        var videoJob: Job? = null
+        var audioJob: Job? = null
+        
+        val client = Client.builder()
+            .apiKey(apiKey)
+            .build()
+            
         try {
-            emit(LiveAudioResult.Status("Initializing Live API session..."))
-            
-            val client = Client.builder()
-                .apiKey(apiKey)
-                .build()
-            
-            emit(LiveAudioResult.Status("Live session ready, start speaking..."))
-            
-            // Simulation of streaming process - in production, use actual Live API streaming
-            simulateLiveAudioStreaming { result ->
-                emit(result)
+            // Configure the Live API settings
+            val config = LiveConnectConfig.builder()
+                .build() // Use default options
+                
+            val futureSession = client.async.live.connect(VoiceConfig.LIVE_AUDIO_MODEL, config)
+            val session = futureSession.get() // Wait for connection
+
+            trySend(LiveAudioResult.Status("Live session ready, start speaking..."))
+
+            // Handle incoming server messages
+            session.receive { message ->
+                try {
+                    message.serverContent().ifPresent { content ->
+                        content.modelTurn().ifPresent { turn ->
+                            turn.parts().ifPresent { partsList ->
+                                partsList.forEach { part ->
+                                    // Text transcripts
+                                    part.text().ifPresent { textChunk ->
+                                        trySend(LiveAudioResult.Transcription(textChunk))
+                                    }
+                                    
+                                    // Audio responses
+                                    part.inlineData().ifPresent { blob ->
+                                        blob.data().ifPresent { data ->
+                                            if (data.isNotEmpty()) {
+                                                trySend(LiveAudioResult.AudioResponse(data))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing server message", e)
+                }
             }
             
+            // 1. Start Audio Recording (Microphone)
+            val bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT) * 4
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                CHANNEL_CONFIG,
+                AUDIO_FORMAT,
+                bufferSize
+            )
+
+            if (audioRecord.state == AudioRecord.STATE_INITIALIZED) {
+                audioRecord.startRecording()
+                audioJob = launch(Dispatchers.IO) {
+                    val buffer = ByteArray(bufferSize)
+                    while (isActive && isSessionActive) {
+                        val readResult = audioRecord.read(buffer, 0, buffer.size)
+                        if (readResult > 0) {
+                            val chunkBytes = buffer.copyOf(readResult)
+                            val audioBlob = Blob.builder()
+                                .mimeType("audio/pcm;rate=16000")
+                                .data(chunkBytes)
+                                .build()
+                            
+                            val inputParams = LiveSendRealtimeInputParameters.builder()
+                                .audio(audioBlob)
+                                .build()
+                                
+                            try {
+                                session.sendRealtimeInput(inputParams)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error sending audio chunk", e)
+                                isSessionActive = false
+                            }
+                        }
+                    }
+                }
+            } else {
+                trySend(LiveAudioResult.Error("Failed to initialize microphone"))
+            }
+
+            // 2. Start Video Recording (TV Screen Polling at ~1 FPS)
+            videoJob = launch(Dispatchers.IO) {
+                while (isActive && isSessionActive) {
+                    try {
+                        val screenshotResult = deviceRepository.captureScreen()
+                        if (screenshotResult.isSuccess) {
+                            val jpegBytes = screenshotResult.getOrNull()
+                            if (jpegBytes != null && jpegBytes.isNotEmpty()) {
+                                val videoBlob = Blob.builder()
+                                    .mimeType("image/jpeg")
+                                    .data(jpegBytes)
+                                    .build()
+                                
+                                val videoParams = LiveSendRealtimeInputParameters.builder()
+                                    .video(videoBlob)
+                                    .build()
+                                
+                                session.sendRealtimeInput(videoParams)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error capturing screen for Live session", e)
+                    }
+                    
+                    delay(1000) // 1 FPS
+                }
+            }
+            
+            // Wait until cancelled by the UI Flow collection
+            awaitCancellation()
+
         } catch (e: Exception) {
-            emit(LiveAudioResult.Error("Live API error: ${e.message}"))
+            trySend(LiveAudioResult.Error("Live API error: ${e.message}"))
+        } finally {
+            isSessionActive = false
+            audioJob?.cancel()
+            videoJob?.cancel()
+            audioRecord?.stop()
+            audioRecord?.release()
         }
     }.flowOn(Dispatchers.IO)
-    
-    /**
-     * Process real-time audio chunks using Gemini 2.5 Flash Native Audio
-     */
-    suspend fun processAudioChunk(apiKey: String, audioChunk: ByteArray): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val client = Client.builder()
-                .apiKey(apiKey)
-                .build()
-            
-            val content = Content.fromParts(
-                Part.fromText("Process this real-time audio chunk for TV remote control."),
-                Part.builder().inlineData(Blob.builder().mimeType("audio/3gp").data(audioChunk).build()).build()
-            )
-            
-            val response = client.models.generateContent("gemini-2.5-flash-native-audio-preview-12-2025", content, null)
-            Result.success(response.text() ?: "")
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
+
     /**
      * Generate spoken responses using Gemini 2.5 Flash TTS
      */
@@ -84,76 +183,25 @@ class GeminiLiveAudioService @Inject constructor(
                 Part.fromText(text)
             )
             
-            val response = client.models.generateContent("gemini-2.5-flash-preview-tts", content, null)
+            val response = client.models.generateContent(VoiceConfig.TTS_MODEL, content, null)
             
-            val audioData: ByteArray = (response.candidates().get().firstOrNull()
-                ?.content()?.get()?.parts()?.get()?.firstOrNull()
-                ?.inlineData()?.get()?.data() as? ByteArray) ?: byteArrayOf()
+            var audioData = byteArrayOf()
+            response.candidates().ifPresent { candidates ->
+                candidates.firstOrNull()?.content()?.ifPresent { c ->
+                    c.parts().ifPresent { parts ->
+                        parts.firstOrNull()?.inlineData()?.ifPresent { blob ->
+                            blob.data().ifPresent { data ->
+                                audioData = data
+                            }
+                        }
+                    }
+                }
+            }
             
-            Result.success<ByteArray>(audioData)
+            Result.success(audioData)
         } catch (e: Exception) {
-            Result.failure<ByteArray>(e)
+            Result.failure(e)
         }
-    }
-    
-    /**
-     * Start continuous audio recording
-     */
-    fun startContinuousRecording(): Result<String> = try {
-        audioFile = File(context.cacheDir, "live_audio_${System.currentTimeMillis()}.3gp")
-        
-        mediaRecorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile(audioFile?.absolutePath)
-            prepare()
-            start()
-        }
-        
-        Result.success("Live recording started")
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
-    
-    /**
-     * Stop recording
-     */
-    fun stopRecording(): Result<ByteArray> = try {
-        mediaRecorder?.stop()
-        mediaRecorder?.release()
-        mediaRecorder = null
-        
-        val audioData = audioFile?.readBytes() ?: byteArrayOf()
-        audioFile?.delete()
-        
-        Result.success(audioData)
-    } catch (e: Exception) {
-        Result.failure(e)
-    } finally {
-        mediaRecorder = null
-        audioFile = null
-    }
-    
-    private suspend fun simulateLiveAudioStreaming(
-        onResult: suspend (LiveAudioResult) -> Unit
-    ) {
-        val phases = listOf(
-            "Listening for voice command...",
-            "Processing audio stream...",
-            "Transcribing speech...",
-            "Understanding intent...",
-            "Executing command..."
-        )
-        
-        phases.forEach { phase ->
-            onResult(LiveAudioResult.Status(phase))
-            kotlinx.coroutines.delay(500) 
-        }
-        
-        onResult(LiveAudioResult.Transcription("Open Netflix"))
-        onResult(LiveAudioResult.Command(VoiceCommand("launch", "Netflix", 0.95f)))
-        onResult(LiveAudioResult.Status("Command executed successfully"))
     }
 }
 

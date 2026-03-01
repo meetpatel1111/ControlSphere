@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import android.util.Log
 import com.controlsphere.tvremote.R
 import com.controlsphere.tvremote.presentation.navigation.Screen
 import com.controlsphere.tvremote.presentation.screens.devicepairing.components.DeviceItem
@@ -29,7 +30,8 @@ fun DevicePairingScreen(
 
     // Navigate to remote screen when connected
     LaunchedEffect(uiState.isConnected) {
-        if (uiState.isConnected) {
+        if (uiState.isConnected && uiState.isAuthorized) {
+            Log.d("DevicePairing", "Connected and authorized, navigating to Remote screen")
             navController.navigate(Screen.Remote.route) {
                 popUpTo(Screen.DevicePairing.route) { inclusive = true }
             }
@@ -66,6 +68,29 @@ fun DevicePairingScreen(
                         text = stringResource(R.string.device_pairing_subtitle),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    
+                    // Connection status indicator
+                    if (uiState.isConnected) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "✅ Connected to TV",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            if (!uiState.isAuthorized) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "(Authorizing...)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

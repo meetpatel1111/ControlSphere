@@ -45,7 +45,7 @@ class GeminiVoiceService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-2.5-flash", content, null)
+            val response = client.models.generateContent(VoiceConfig.TRANSCRIPTION_MODEL, content, null)
             val transcribedText = response.text() ?: ""
             
             // Cleanup temp file
@@ -71,7 +71,7 @@ class GeminiVoiceService @Inject constructor(
                 Command: "$command"
             """.trimIndent()
             
-            val response = client.models.generateContent("gemini-2.5-flash", prompt, null)
+            val response = client.models.generateContent(VoiceConfig.COMMAND_PROCESSING_MODEL, prompt, null)
             val jsonResponse = response.text() ?: ""
             
             // Parse using Gson

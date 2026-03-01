@@ -40,7 +40,7 @@ class GeminiTTSService @Inject constructor(
                 .responseMimeType("audio/mp3")
                 .build()
             
-            val response = client.models.generateContent("gemini-2.5-flash-preview-tts", fullPrompt, config)
+            val response = client.models.generateContent(VoiceConfig.TTS_MODEL, fullPrompt, config)
             
             // Extract audio data from response
             val audioData: ByteArray = (response.candidates().get().firstOrNull()
@@ -118,7 +118,7 @@ class GeminiTTSService @Inject constructor(
                 .responseMimeType("audio/mp3")
                 .build()
             
-            val response = client.models.generateContent("gemini-2.5-flash-preview-tts", conversation, config)
+            val response = client.models.generateContent(VoiceConfig.TTS_MODEL, conversation, config)
             
             val audioData = (response.candidates().get().firstOrNull()
                 ?.content()?.get()?.parts()?.get()?.firstOrNull()

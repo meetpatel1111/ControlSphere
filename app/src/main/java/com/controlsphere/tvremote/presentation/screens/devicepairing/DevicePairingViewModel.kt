@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.controlsphere.tvremote.data.discovery.DeviceDiscovery
 import com.controlsphere.tvremote.data.discovery.DiscoveredDevice
 import com.controlsphere.tvremote.data.repository.DeviceRepository
@@ -29,6 +30,7 @@ class DevicePairingViewModel @Inject constructor(
         // Observe connection status
         viewModelScope.launch {
             deviceRepository.getConnectionStatus().collect { status ->
+                Log.d("DevicePairingViewModel", "Connection status updated: isConnected=${status.isConnected}, isAuthorized=${status.isAuthorized}")
                 uiState = uiState.copy(
                     isConnected = status.isConnected,
                     isAuthorized = status.isAuthorized,
@@ -64,6 +66,7 @@ class DevicePairingViewModel @Inject constructor(
     }
 
     fun connectToDevice(ipAddress: String, port: Int = 5556) {
+        Log.d("DevicePairingViewModel", "Attempting to connect to $ipAddress:$port")
         uiState = uiState.copy(
             connectingToDevice = ipAddress,
             errorMessage = null
@@ -72,12 +75,16 @@ class DevicePairingViewModel @Inject constructor(
         viewModelScope.launch {
             val result = deviceRepository.connectToDevice(ipAddress, port)
             
+            Log.d("DevicePairingViewModel", "Connection result: ${result.isSuccess}")
             uiState = uiState.copy(connectingToDevice = null)
             
             if (!result.isSuccess) {
+                Log.e("DevicePairingViewModel", "Connection failed: ${result.exceptionOrNull()?.message}")
                 uiState = uiState.copy(
                     errorMessage = result.exceptionOrNull()?.message ?: "Connection failed"
                 )
+            } else {
+                Log.d("DevicePairingViewModel", "Connection successful!")
             }
         }
     }

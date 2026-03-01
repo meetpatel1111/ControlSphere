@@ -54,7 +54,7 @@ class GeminiAudioAnalysisService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-3-flash-preview", content, config)
+            val response = client.models.generateContent(VoiceConfig.TRANSCRIPTION_MODEL, content, config)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -98,7 +98,7 @@ class GeminiAudioAnalysisService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-3-flash-preview", content, null)
+            val response = client.models.generateContent(VoiceConfig.TRANSCRIPTION_MODEL, content, null)
             
             tempFile.delete()
             
@@ -152,7 +152,7 @@ class GeminiAudioAnalysisService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-3-flash-preview", content, config)
+            val response = client.models.generateContent(VoiceConfig.TRANSCRIPTION_MODEL, content, config)
             val jsonResponse = cleanJsonResponse(response.text() ?: "")
             
             tempFile.delete()
@@ -191,7 +191,7 @@ class GeminiAudioAnalysisService @Inject constructor(
                 Part.fromUri(uploadedFile.name().get(), uploadedFile.mimeType().get())
             )
             
-            val response = client.models.generateContent("gemini-3-flash-preview", content, null)
+            val response = client.models.generateContent(VoiceConfig.TRANSCRIPTION_MODEL, content, null)
             
             tempFile.delete()
             
