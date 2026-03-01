@@ -69,6 +69,12 @@ class RemoteViewModel @Inject constructor(
     fun clearError() {
         uiState = uiState.copy(errorMessage = null)
     }
+
+    fun disconnect() {
+        viewModelScope.launch {
+            deviceRepository.disconnectFromDevice()
+        }
+    }
 }
 
 data class RemoteUiState(

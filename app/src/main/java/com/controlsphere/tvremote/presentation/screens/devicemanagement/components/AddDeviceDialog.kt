@@ -22,7 +22,7 @@ fun AddDeviceDialog(
 ) {
     var name by remember { mutableStateOf("") }
     var ipAddress by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("5555") }
+    var port by remember { mutableStateOf("5556") }
     var deviceType by remember { mutableStateOf(DeviceType.ANDROID_TV) }
     var manufacturer by remember { mutableStateOf("") }
     var model by remember { mutableStateOf("") }
@@ -186,7 +186,7 @@ fun AddDeviceDialog(
                             id = java.util.UUID.randomUUID().toString(),
                             name = name.trim(),
                             ipAddress = ipAddress.trim(),
-                            port = port.toIntOrNull() ?: 5555,
+                            port = port.toIntOrNull() ?: 5556,
                             deviceType = deviceType,
                             model = model.trim(),
                             manufacturer = manufacturer.trim(),

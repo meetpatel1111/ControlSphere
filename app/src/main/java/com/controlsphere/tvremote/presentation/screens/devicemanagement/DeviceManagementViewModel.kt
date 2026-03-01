@@ -248,7 +248,7 @@ class DeviceManagementViewModel @Inject constructor(
     fun createDeviceProfile(
         name: String,
         ipAddress: String,
-        port: Int = 5555,
+        port: Int = 5556,
         deviceType: DeviceType,
         model: String,
         manufacturer: String,

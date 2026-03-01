@@ -461,35 +461,51 @@ class DeviceRepository @Inject constructor(
     
     // Current device operations
     suspend fun sendKeyEvent(keyEvent: KeyEvent): Result<Unit> {
-        // Try WiFi first, fallback to ADB
+        // Try WiFi first (supported natively now via AccessibilityService), fallback to ADB
         if (wifiConnectionManager.isConnected()) {
-            return wifiConnectionManager.sendKeyEvent(keyEvent.code)
+            val wifiResult = wifiConnectionManager.sendKeyEvent(keyEvent.code)
+            if (wifiResult.isSuccess) return wifiResult
         }
-        return adbConnection.sendKeyEvent(keyEvent.code)
+        if (adbConnection.isConnected()) {
+            return adbConnection.sendKeyEvent(keyEvent.code)
+        }
+        return Result.failure(Exception("Not connected to TV"))
     }
     
     suspend fun sendText(text: String): Result<Unit> {
-        // Try WiFi first, fallback to ADB
+        // Try WiFi first
         if (wifiConnectionManager.isConnected()) {
-            return wifiConnectionManager.sendText(text)
+            val wifiResult = wifiConnectionManager.sendText(text)
+            if (wifiResult.isSuccess) return wifiResult
         }
-        return adbConnection.sendText(text)
+        if (adbConnection.isConnected()) {
+            return adbConnection.sendText(text)
+        }
+        return Result.failure(Exception("Not connected to TV"))
     }
     
     suspend fun launchApp(packageName: String): Result<Unit> {
-        // Try WiFi first, fallback to ADB
+        // Try WiFi first
         if (wifiConnectionManager.isConnected()) {
-            return wifiConnectionManager.launchApp(packageName)
+            val wifiResult = wifiConnectionManager.launchApp(packageName)
+            if (wifiResult.isSuccess) return wifiResult
         }
-        return adbConnection.launchApp(packageName)
+        if (adbConnection.isConnected()) {
+            return adbConnection.launchApp(packageName)
+        }
+        return Result.failure(Exception("Not connected to TV"))
     }
     
     suspend fun forceStopApp(packageName: String): Result<Unit> {
-        // Try WiFi first, fallback to ADB
+        // Try WiFi first
         if (wifiConnectionManager.isConnected()) {
-            return wifiConnectionManager.forceStopApp(packageName)
+            val wifiResult = wifiConnectionManager.forceStopApp(packageName)
+            if (wifiResult.isSuccess) return wifiResult
         }
-        return adbConnection.forceStopApp(packageName)
+        if (adbConnection.isConnected()) {
+            return adbConnection.forceStopApp(packageName)
+        }
+        return Result.failure(Exception("Not connected to TV"))
     }
     
     suspend fun getInstalledApps(): Result<List<String>> {

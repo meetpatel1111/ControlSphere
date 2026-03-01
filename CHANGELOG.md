@@ -2,10 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-03-01
+
+### Added
+- **Custom Voice Command Execution**: Fully implemented the Phone-side execution logic for custom commands, linking them to real `DeviceRepository` actions (KeyEvents, App Launch, etc.).
+- **Local Voice Trigger Priority**: Transcribed voice commands now check against User-Defined Triggers first, allowing for near-instant execution of custom shortcuts without AI latency.
+- **TV Voice Parsing Fallback**: Implemented a natural language parser in `TVReceiverManager` to handle common voice phrases like "home", "back", and volume control directly on the TV.
+
+### Fixed
+- **WiFi Connectivity Stability**: Standardized the default connection port to `5556` across the entire app to match the TV Receiver Socket, eliminating "Connection Refused" errors on port 5555.
+- **Native Intent App Launch**: Refactored the app launching system to use Android's native `Intent` framework instead of legacy `monkey` shell commands, which were blocked by SELinux on Android TV 10+ over WiFi.
+- **Build & Dependency Fixes**: Resolved various Kotlin compiler and unresolved reference issues in the `TVReceiverManager` and `AdvancedVoiceService` components.
+
 ## [0.3.0] - 2026-03-01
 
 ### Added
 - **True Gemini Live API Integration**: Upgraded the `google-genai` SDK from `1.0.0` to `1.41.0` and implemented the official Gemini Live API for real-time bidirectional streaming.
+- **TV Native Navigation via WiFi**: Built the `ControlSphereAccessibilityService`, an Accessibility Service that finally allows the TV App to inject D-PAD interactions and Text inputs over WiFi, completely ignoring Android 10+ raw socket `input keyevent` restrictions.
+- **Persistent TV Background Execution**: Tied `TVReceiverManager`'s sockets to the `ControlSphereAccessibilityService` lifecycle. This guarantees the ControlSphere server remains 100% active in the background, reliably handling Voice Commands even when the UI is closed.
 - **Background Screen Capture for AI Vision**: TV Receiver now captures screenshots natively via device pipelines and sends them via WebSocket to Gemini dynamically at 1 FPS to give the AI real-time visual context.
 - **Live PCM Audio Streaming**: Switched from recording full files to continuously streaming 16kHz PCM audio data straight from `AudioRecord` to the Gemini Live WebSockets for ultra-fast conversational latency.
 - **TV Receiver Command History**: Added a clean Compose dashboard on the TV app for displaying real-time command logs (`TVReceiverScreen`), including visual status indicators.

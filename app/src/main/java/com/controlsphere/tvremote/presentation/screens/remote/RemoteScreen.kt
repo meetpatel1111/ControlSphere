@@ -68,8 +68,18 @@ fun RemoteScreen(
                                 stringResource(R.string.connected) 
                             else 
                                 stringResource(R.string.disconnected),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(end = 8.dp)
                         )
+                        
+                        if (uiState.isConnected) {
+                            IconButton(onClick = { viewModel.disconnect() }) {
+                                Icon(
+                                    imageVector = Icons.Default.LinkOff,
+                                    contentDescription = "Disconnect"
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

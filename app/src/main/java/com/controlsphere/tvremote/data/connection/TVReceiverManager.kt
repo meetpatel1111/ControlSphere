@@ -5,11 +5,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.controlsphere.tvremote.data.accessibility.ControlSphereAccessibilityService
 import java.io.PrintWriter
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -25,6 +21,7 @@ import android.util.Log
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import android.content.Intent
 import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
@@ -323,10 +320,48 @@ class TVReceiverManager @Inject constructor(
     
     private suspend fun executeKeyEvent(keyCode: Int) = withContext(Dispatchers.IO) {
         try {
-            // Execute key event on TV
-            val process = Runtime.getRuntime().exec("input keyevent $keyCode")
-            process.waitFor()
-            Log.d("TVReceiver", "Key event executed: $keyCode")
+            // Try Accessibility Service first for navigation keys
+            val handledByAccessibility = when (keyCode) {
+                19 -> ControlSphereAccessibilityService.instance?.injectDpadUp() == true
+                20 -> ControlSphereAccessibilityService.instance?.injectDpadDown() == true
+                21 -> ControlSphereAccessibilityService.instance?.injectDpadLeft() == true
+                22 -> ControlSphereAccessibilityService.instance?.injectDpadRight() == true
+                23, 66 -> ControlSphereAccessibilityService.instance?.injectDpadCenter() == true
+                3 -> ControlSphereAccessibilityService.instance?.injectGlobalHome() == true
+                4 -> ControlSphereAccessibilityService.instance?.injectGlobalBack() == true
+                187 -> ControlSphereAccessibilityService.instance?.injectGlobalRecents() == true
+                84, 219, 231 -> {
+                    // Voice and Search Android TV mapping
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_ASSIST).apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                        true
+                    } catch (e: Exception) {
+                        try {
+                            // Fallback to Web Search
+                            val intent = android.content.Intent(android.content.Intent.ACTION_WEB_SEARCH).apply {
+                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                            true
+                        } catch (e2: Exception) {
+                            false
+                        }
+                    }
+                }
+                else -> false
+            }
+
+            if (!handledByAccessibility) {
+                // Fallback: Execute key event on TV shell (Only works for volume/media or if system privileged)
+                val process = Runtime.getRuntime().exec("input keyevent $keyCode")
+                process.waitFor()
+                Log.d("TVReceiver", "Key event executed via shell: $keyCode")
+            } else {
+                Log.d("TVReceiver", "Key event executed via Accessibility: $keyCode")
+            }
         } catch (e: Exception) {
             Log.e("TVReceiver", "Failed to execute key event: ${e.message}", e)
         }
@@ -334,10 +369,17 @@ class TVReceiverManager @Inject constructor(
     
     private suspend fun executeTextInput(text: String) = withContext(Dispatchers.IO) {
         try {
-            val escapedText = text.replace(" ", "%s")
-            val process = Runtime.getRuntime().exec("input text $escapedText")
-            process.waitFor()
-            Log.d("TVReceiver", "Text input executed: $text")
+            // Try Accessibility Service first for text
+            val handledByAccessibility = ControlSphereAccessibilityService.instance?.injectText(text) == true
+            
+            if (!handledByAccessibility) {
+                val escapedText = text.replace(" ", "%s")
+                val process = Runtime.getRuntime().exec("input text $escapedText")
+                process.waitFor()
+                Log.d("TVReceiver", "Text input executed via shell: $text")
+            } else {
+                Log.d("TVReceiver", "Text input executed via Accessibility: $text")
+            }
         } catch (e: Exception) {
             Log.e("TVReceiver", "Failed to execute text input: ${e.message}", e)
         }
@@ -345,9 +387,18 @@ class TVReceiverManager @Inject constructor(
     
     private suspend fun executeAppLaunch(packageName: String) = withContext(Dispatchers.IO) {
         try {
-            val process = Runtime.getRuntime().exec("monkey -p $packageName 1")
-            process.waitFor()
-            Log.d("TVReceiver", "App launched: $packageName")
+            // Try Native Intent Launch First
+            val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+            if (intent != null) {
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                Log.d("TVReceiver", "App launched natively: $packageName")
+            } else {
+                // Fallback to Shell Monkey if intent is null
+                val process = Runtime.getRuntime().exec("monkey -p $packageName 1")
+                process.waitFor()
+                Log.d("TVReceiver", "App launched via shell: $packageName")
+            }
         } catch (e: Exception) {
             Log.e("TVReceiver", "Failed to launch app: ${e.message}", e)
         }
@@ -365,15 +416,43 @@ class TVReceiverManager @Inject constructor(
     
     private suspend fun executeVoiceCommand(voiceCommand: String) = withContext(Dispatchers.IO) {
         try {
-            // Handle voice commands - this would integrate with your voice system
+            // Handle voice commands - basic natural language parsing
             Log.d("TVReceiver", "Voice command received: $voiceCommand")
             
-            // For now, just log it. In a real implementation, this would:
-            // 1. Process the voice command
-            // 2. Execute appropriate action
-            // 3. Provide feedback
+            val cmd = voiceCommand.lowercase()
+            when {
+                cmd.contains("home") -> executeKeyEvent(3) // KEYCODE_HOME
+                cmd.contains("back") -> executeKeyEvent(4) // KEYCODE_BACK
+                cmd.contains("mute") -> executeKeyEvent(164) // KEYCODE_VOLUME_MUTE
+                cmd.contains("volume up") || cmd.contains("louder") -> executeKeyEvent(24) // KEYCODE_VOLUME_UP
+                cmd.contains("volume down") || cmd.contains("quiet") -> executeKeyEvent(25) // KEYCODE_VOLUME_DOWN
+                cmd.contains("play") || cmd.contains("pause") -> executeKeyEvent(85) // KEYCODE_MEDIA_PLAY_PAUSE
+                cmd.contains("open") || cmd.contains("launch") -> {
+                    val appName = cmd.substringAfter("open").substringAfter("launch").trim()
+                    if (appName.isNotEmpty()) {
+                        executeAppLaunch(appName)
+                    }
+                }
+                else -> {
+                    // Fallback to searching if we don't recognize the command
+                    launchSearch(voiceCommand)
+                }
+            }
+            Unit
         } catch (e: Exception) {
             Log.e("TVReceiver", "Failed to execute voice command: ${e.message}", e)
+        }
+    }
+
+    private suspend fun launchSearch(query: String) {
+        try {
+            val intent = Intent(Intent.ACTION_SEARCH)
+            intent.putExtra("query", query)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback to sending as text if direct search fails
+            executeKeyEvent(66) // ENTER (with potential text input if focused)
         }
     }
     

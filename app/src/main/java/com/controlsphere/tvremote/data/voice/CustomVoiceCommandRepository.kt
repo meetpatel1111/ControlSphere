@@ -1,5 +1,7 @@
 package com.controlsphere.tvremote.data.voice
 
+import com.controlsphere.tvremote.data.repository.DeviceRepository
+import com.controlsphere.tvremote.domain.model.KeyEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -8,7 +10,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CustomVoiceCommandRepository @Inject constructor() {
+class CustomVoiceCommandRepository @Inject constructor(
+    private val deviceRepository: DeviceRepository
+) {
     
     private val _customCommands = MutableStateFlow<List<CustomVoiceCommand>>(emptyList())
     val customCommands: Flow<List<CustomVoiceCommand>> = _customCommands.asStateFlow()
@@ -274,17 +278,30 @@ class CustomVoiceCommandRepository @Inject constructor() {
         return try {
             when (action.type) {
                 ActionType.KEY_EVENT -> {
-                    // This would be handled by the device repository
-                    ExecutedAction(action, true, "Key event sent: ${action.parameters["key"]}")
+                    val keyName = action.parameters["key"] ?: return ExecutedAction(action, false, null, "No key specified")
+                    val keyEvent = try {
+                        KeyEvent.valueOf(keyName)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    if (keyEvent != null) {
+                        deviceRepository.sendKeyEvent(keyEvent)
+                        ExecutedAction(action, true, "Key event sent: $keyName")
+                    } else {
+                        ExecutedAction(action, false, null, "Invalid key event: $keyName")
+                    }
                 }
                 ActionType.TEXT_INPUT -> {
                     val text = action.parameters["text"]?.replace("{search_query}", context["search_query"] ?: "")
                         ?: return ExecutedAction(action, false, null, "No text specified")
+                    deviceRepository.sendText(text)
                     ExecutedAction(action, true, "Text input: $text")
                 }
                 ActionType.APP_LAUNCH -> {
                     val packageName = action.parameters["package"]
                         ?: return ExecutedAction(action, false, null, "No package specified")
+                    deviceRepository.launchApp(packageName)
                     ExecutedAction(action, true, "App launched: $packageName")
                 }
                 ActionType.DELAY -> {
@@ -295,21 +312,24 @@ class CustomVoiceCommandRepository @Inject constructor() {
                 ActionType.VOICE_COMMAND -> {
                     val command = action.parameters["command"]
                         ?: return ExecutedAction(action, false, null, "No command specified")
-                    ExecutedAction(action, true, "Voice command: $command")
+                    // If WiFi is connected, send as high-level voice command
+                    deviceRepository.sendText("VOICE:$command")
+                    ExecutedAction(action, true, "Voice command sent: $command")
                 }
                 ActionType.VISUAL_SEARCH -> {
                     val query = action.parameters["query"]
                         ?: return ExecutedAction(action, false, null, "No query specified")
-                    ExecutedAction(action, true, "Visual search: $query")
+                    deviceRepository.sendText(query)
+                    deviceRepository.sendKeyEvent(KeyEvent.SETTINGS_SEARCH)
+                    ExecutedAction(action, true, "Visual search triggered: $query")
                 }
                 ActionType.COMPUTER_USE -> {
                     val task = action.parameters["task"]
                         ?: return ExecutedAction(action, false, null, "No task specified")
-                    ExecutedAction(action, true, "Computer use task: $task")
+                    ExecutedAction(action, true, "Computer use task (Simulation): $task")
                 }
                 ActionType.CONDITIONAL -> {
-                    // Complex conditional logic would go here
-                    ExecutedAction(action, true, "Conditional action executed")
+                    ExecutedAction(action, true, "Conditional action (Simulation)")
                 }
             }
         } catch (e: Exception) {

@@ -8,7 +8,7 @@ data class Device(
     val id: String,
     val name: String,
     val ipAddress: String,
-    val port: Int = 5555,
+    val port: Int = 5556,
     val isConnected: Boolean = false,
     val isAuthorized: Boolean = false,
     val lastConnected: Long = 0L

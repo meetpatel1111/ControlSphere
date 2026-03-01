@@ -16,7 +16,8 @@ class VoiceRepository @Inject constructor(
     private val geminiTTSService: GeminiTTSService,
     private val geminiAudioAnalysisService: GeminiAudioAnalysisService,
     private val audioPlaybackManager: AudioPlaybackManager,
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: DeviceRepository,
+    private val customVoiceCommandRepository: CustomVoiceCommandRepository
 ) {
     
     fun getRecordingState(): StateFlow<RecordingState> = voiceService.getRecordingState()
@@ -52,6 +53,20 @@ class VoiceRepository @Inject constructor(
             val transcribedText = transcribeResult.getOrNull().orEmpty()
             if (transcribedText.isBlank()) {
                 return Result.failure(Exception("No speech detected"))
+            }
+
+            // Check for custom commands first
+            val matchingCustomCommands = customVoiceCommandRepository.findMatchingCommands(transcribedText)
+            if (matchingCustomCommands.isNotEmpty()) {
+                val customCommand = matchingCustomCommands.first()
+                val executionResult = customVoiceCommandRepository.executeCommand(customCommand.id)
+                
+                return Result.success(VoiceCommandResult(
+                    transcribedText = transcribedText,
+                    command = VoiceCommand(action = "custom", text = customCommand.name, confidence = 1.0f),
+                    executionSuccess = executionResult.isSuccess,
+                    executionError = executionResult.exceptionOrNull()?.message
+                ))
             }
             
             // Use advanced command processing
@@ -103,7 +118,21 @@ class VoiceRepository @Inject constructor(
             }
             
             val transcribedText = transcribeResult.getOrNull().orEmpty()
-            if (transcribedText.isBlank()) {
+            if (transcribedText.isNotBlank()) {
+                // Check for custom commands
+                val matchingCustomCommands = customVoiceCommandRepository.findMatchingCommands(transcribedText)
+                if (matchingCustomCommands.isNotEmpty()) {
+                    val customCommand = matchingCustomCommands.first()
+                    val executionResult = customVoiceCommandRepository.executeCommand(customCommand.id)
+                    
+                    return Result.success(VoiceCommandResult(
+                        transcribedText = transcribedText,
+                        command = VoiceCommand(action = "custom", text = customCommand.name, confidence = 1.0f),
+                        executionSuccess = executionResult.isSuccess,
+                        executionError = executionResult.exceptionOrNull()?.message
+                    ))
+                }
+            } else {
                 return Result.failure(Exception("No speech detected"))
             }
             

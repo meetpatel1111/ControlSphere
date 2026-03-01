@@ -66,6 +66,9 @@
     <string name="about">About</string>
     <string name="version">Version</string>
     
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_description">Allows ControlSphere to navigate the TV UI and type text over WiFi when ADB is disabled.</string>
+
     <!-- Common -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
